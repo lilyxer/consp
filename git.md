@@ -6,9 +6,12 @@ origin - фактически именованная ссылка на удал�
 main - имя главной ветки локального репозитория
 SSH - terminal -> ssh-keygen -> public key: ssh-rsa -> settings: SSH -> new key
 ```
-[установка GitBash](https://git-scm.com/download/win)
-[песочница](https://markdown-here.com/livedemo.html)
-[статья на habrе](https://habr.com/ru/company/ruvds/blog/599929/"habr")
+- [установка GitBash](https://git-scm.com/download/win)
+
+- [песочница](https://markdown-here.com/livedemo.html)
+
+- [статья на habrе](https://habr.com/ru/company/ruvds/blog/599929/"habr")
+
 <!-- Преднастройки-->
 
 #### Пути

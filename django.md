@@ -326,7 +326,102 @@ from django.shortcuts import render, HttpResponse
 
 <a name='auth_reg'><h3>Авторизация и регистрация</h3></a>
 
+- [Шаблонные контекстные процессоры](#auth_reg3)
+
+- [Классы LoginView, LogoutView и AuthenticationForm](#auth_reg4)
+
+- [Декоратор login_required и класс LoginRequiredMixin](#auth_reg5)
+
 - [Регистрация пользователей через функции представления](#auth_reg6)
+
+<a name='auth_reg3'><h4>Шаблонные контекстные процессоры</h4></a>
+
+- создаём вспомогательный файл cont_pocessors.py ->
+```python
+def get_mainmenu(request):
+    return {'mainmenu': ()} # возвращает словарь для главного меню
+```
+- добавляем контекстный процессор в settings.py TEMPLATES->
+```python
+context_processors.append('main.cont_pocessors.get_mainmenu') # приложение.файл.имя
+```
+- дополняем базовый шаблон templates/base.html -> 
+```html
+{% for elem in mainmenu %} <!-- mainmenu берем из контекстного менеджера на прямую -->
+    <li class='menu-list-item'>
+        <a class='menu-link' href='{% url elem.link %}'>{{ elem.name }}</a>
+    </li>
+{% endfor %}
+{% if user.is_authenticated %} <!-- проверяем авторизацию -->
+    <li class='menu-list-item'>{{ user.username }} | 
+    <a class='menu-link' href='{% url 'users:logout' %}'>Выйти</a></li>
+{% else %}
+<li class='menu-list-item'>
+    <a class='menu-link' href='{% url 'users:login' %}'>Войти</a> | 
+    <a class='menu-link' href='{% url 'users:register' %}'>Регистрация</a>
+</li>
+{% endif %}
+```
+
+<a name='auth_reg4'><h4>Классы LoginView, LogoutView и AuthenticationForm</h4></a>
+
+```python
+from django.contrib.auth.views import LoginView, LogoutView
+from django.contrib.auth.forms import AuthenticationForm
+# базовые классы для авторизации и выхода пользователя
+```
+- создаём форму для авторизации пользователя forms.py ->
+```python
+class LoginForm(AuthenticationForm):
+    """ Наследуемся от формы обработки аутентификации пользователя. 
+    перегружаем базовые атрибуты, присваиваем им имена, доп настройки """
+    username = forms.CharField(label='Логин', widget=forms.TextInput(attrs={'class': 'form-input'}))
+    password = forms.CharField(label='Пароль', widget=forms.PasswordInput(attrs={'class': 'form-input'}))
+    class Meta:
+        model = get_user_model() # возврат текущей модели пользователя 
+        fields = ['username', 'password'] # отображаемые поля
+```
+- создаём шаблон авторизации login.html ->
+```html
+{% extends 'base.html' %} <!-- какой шаблон расширяем -->
+{% block content %} <!-- именованый блок -->
+<div class='post'><div class='post-content'>
+    <form method='POST'> <!-- форма регистрации -->
+        {% csrf_token %} <!-- скрытый атрибут для проверки -->
+        <input type="hidden" name="next" value="{{ next }}" /> <!-- скрытый атрибут перенаправит на страницу откуда пришел -->
+        <div class='form-error'>{{ form.non_field_errors }}</div> <!-- отображение общих ошибок -->
+        {% for elem in form %}
+            <label class='form-label' for='{{ elem.id_for_label }}'>{{elem.label}}: </label>{{ elem }}</p>
+            <div class='form-error'>{{ felem.errors }}</div>
+        {% endfor %}
+        <button class='form-button' type='submit'>Войти</button>
+    </form>
+</div></div>
+{% endblock content%}
+```
+- подключаем путь urls.py ->
+```python
+# LogoutView берем прямо из модуля
+url_patterns.append(path('login/', LoginUser.as_view(), name='login'),
+                    path('logout/', LogoutView.as_view(), name='logout'),)
+```
+- создаём обработчик формы views.py ->
+```python
+class LoginUser(LoginView):
+    form_class = LoginForm # с какой формой работаем
+    template_name = 'users/login.html' # куда рендер идет
+    extra_context = {'title': 'Авторизация'} # дополняем словарь для шаблона
+```
+
+<a name='auth_reg5'><h4>Декоратор login_required и класс LoginRequiredMixin</h4></a>
+
+```python
+from django.contrib.auth.decorators import login_required # применяется в виде 
+# декоратора к функциям вщ views.py, может принимать необязательный аргумент login_url
+
+from django.contrib.auth.mixins import LoginRequiredMixin # применяется к класса, 
+# так же содержит атрибут login_url
+```
 
 <a name='auth_reg6'><h4>Регистрация пользователей через функции представления</h4></a>
 
@@ -334,8 +429,7 @@ from django.shortcuts import render, HttpResponse
 ```html
 {% extends 'base.html' %} <!-- какой шаблон расширяем -->
 {% block content %} <!-- именованый блок -->
-<h1>регистрация|capfirst</h1> <!-- заголовок -->
-<form method='post'> <!-- форма регистрации -->
+<form method='POST'> <!-- форма регистрации -->
     {% csrf_token %} <!-- скрытый атрибут для проверки -->
     <input type='hidden' name='text' value='{{ next }}' /> <!-- скрытый атрибут перенаправит на страницу откуда пришел -->
     {{ form.as_p }} <!-- представдение формы в виде параграфа(быстрый for) -->
@@ -392,6 +486,7 @@ url_patterns.append(path('register/', register, name='register'))
 <a class='menu-link' href='{% url 'users:register' %}'>Регистрация</a>
 - создаем страничку успешной решистрации
 ```
+
 <a name='gloss'><h3>Глоссарий</h3></a>
 
 ```python
