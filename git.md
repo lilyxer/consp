@@ -5,15 +5,10 @@ CTRL + ALT + T
 origin - фактически именованная ссылка на удалённый репозиторий, имя задаётся при привязке remote!
 main - имя главной ветки локального репозитория
 SSH - terminal -> ssh-keygen -> public key: ssh-rsa -> settings: SSH -> new key
-
 ```
-<br>
 [установка GitBash](https://git-scm.com/download/win)
-<br>
 [песочница](https://markdown-here.com/livedemo.html)
-<br>
 [статья на habrе](https://habr.com/ru/company/ruvds/blog/599929/"habr")
-
 <!-- Преднастройки-->
 
 #### Пути
