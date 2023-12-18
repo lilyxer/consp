@@ -326,6 +326,10 @@ from django.shortcuts import render, HttpResponse
 
 <a name='auth_reg'><h3>Авторизация и регистрация</h3></a>
 
+- [Введение в авторизацию пользователей](#auth_reg1)
+
+- [Авторизация пользователей. Функции authenticate() и login()](#auth_reg2)
+
 - [Шаблонные контекстные процессоры](#auth_reg3)
 
 - [Классы LoginView, LogoutView и AuthenticationForm](#auth_reg4)
@@ -333,6 +337,66 @@ from django.shortcuts import render, HttpResponse
 - [Декоратор login_required и класс LoginRequiredMixin](#auth_reg5)
 
 - [Регистрация пользователей через функции представления](#auth_reg6)
+
+<a name='auth_reg1'><h4>Введение в авторизацию пользователей</h4></a>
+
+- Authentication (аутентификация) - проверка подлинности (наличия) пользователя по введенным данным (обычно, это логин/пароль).
+- Authorization (авторизация) – разрешение на доступ (непосредственно вход) к закрытой части сайта.
+- данные в БД в таблице auth_user, обычно модуль объявляют отдельнам приложением. users
+- регистрируем приложение в settings.py ->
+```python
+INSTALLED_APPS.append(users.apps.UsersConfig)
+```
+- добавляем маршруты womens/urls.py ->
+```python
+path('users/', include('users.urls', namespace="users")), # добавляем пространство имен, это важно!
+```
+- добавляем маршруты users/urls.py ->
+```python
+app_name = 'users' # это важно, в шаблонах можно будет писать users: login
+urlpatterns = [
+    path('login/', views.login_user, name='login'),
+    path('logout/', views.logout_user, name='logout'),
+]
+```
+
+<a name='auth_reg2'><h4>Авторизация пользователей. Функции authenticate() и login()</h4></a>
+
+- создаем форму для авторизации forms.py
+```python
+class LoginUserForm(forms.Form):
+    username = forms.CharField(label='Логин', widget=forms.TextInput(attrs={'class': 'form-input'}))
+    password = forms.CharField(label='Пароль', widget=forms.PasswordInput(attrs={'class': 'form-input'}))
+```
+- создаём шаблон авторизации login.html ->
+```html
+{% extends 'base.html' %}
+{% block content %}
+<form method="post">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <p><button type="submit">Войти</button></p>
+</form>
+{% endblock %}
+```
+- создаём обработчик во wviews.py ->
+```python
+def login_user(request):
+    if request.method == 'POST': # если пост запрос
+        form = LoginUserForm(request.POST) # создаем форму на основе наших данных и модели формы
+        if form.is_valid(): # если данные верны и прошли проверку
+            cd = form.cleaned_data # очищаем данные
+            user = authenticate(request, username=cd['username'], password=cd['password']) # проходи аутентификацию
+            if user and user.is_active: # если аутентефикация пройдена и пользователь существет
+                login(request, user) # логинимся
+                return HttpResponseRedirect(reverse('home')) # переходим на стартовую страницу
+    form = LoginUserForm()
+    return render(request, 'users/login.html', {'form': form})
+
+def logout_user(request):
+    logout(request)
+    return HttpResponseRedirect(reverse('users:login'))
+```
 
 <a name='auth_reg3'><h4>Шаблонные контекстные процессоры</h4></a>
 
@@ -723,25 +787,3 @@ verbose_name_plural         # атрибут для названия модел�
 views.py                    # для хранения представлений текущего приложения 
 widget                      # отвечает за настройку внешнего вида поля формы
 ```
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
