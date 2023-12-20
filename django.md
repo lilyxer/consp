@@ -338,6 +338,8 @@ from django.shortcuts import render, HttpResponse
 
 - [Регистрация пользователей через функции представления](#auth_reg6)
 
+- [Класс UserCreationForm](#auth_reg7)
+
 <a name='auth_reg1'><h4>Введение в авторизацию пользователей</h4></a>
 
 - Authentication (аутентификация) - проверка подлинности (наличия) пользователя по введенным данным (обычно, это логин/пароль).
@@ -456,7 +458,7 @@ class LoginForm(AuthenticationForm):
         <div class='form-error'>{{ form.non_field_errors }}</div> <!-- отображение общих ошибок -->
         {% for elem in form %}
             <label class='form-label' for='{{ elem.id_for_label }}'>{{elem.label}}: </label>{{ elem }}</p>
-            <div class='form-error'>{{ felem.errors }}</div>
+            <div class='form-error'>{{ elem.errors }}</div> <!-- ошибки заполнения формы -->
         {% endfor %}
         <button class='form-button' type='submit'>Войти</button>
     </form>
@@ -551,8 +553,63 @@ url_patterns.append(path('register/', register, name='register'))
 - создаем страничку успешной решистрации
 ```
 
-<a name='gloss'><h3>Глоссарий</h3></a>
+<a name='auth_reg7'><h4>Класс UserCreationForm</h4></a>
+- для формы регистрации есть специальный класс
+- унаследовав нашу форму от нового класса можно не заботиться об уникальности логина и совпадении паролей - класс реализует эти проверки
+- переписываем класс формы user/forms.py ->
 
+```python
+from django.contrib.auth.forms UserCreationForm
+class RegisterUserForm(UserCreationForm):
+    username = forms.CharField(label='Логин', widget=forms.TextInput(attrs={'class': 'form-input'}))
+    password1 = forms.CharField(label='Пароль', widget=forms.PasswordInput(attrs={'class': 'form-input'}))
+    password2 = forms.CharField(label='Повтор пароля', widget=forms.PasswordInput(attrs={'class': 'form-input'}))
+    class Meta:
+        model = get_user_model() # возврат текущей модели пользователя
+        # поля отображаемые в поле
+        fields = ['username', 'password1', 'password2', 'email', 'first_name', 'last_name']
+        labels  = {'email': 'E-mail', 'first_name': 'Имя', 'last_name': 'Фамилия'}
+        widgets = {'email': forms.TextInput(attrs={'class': 'form-input'}), 
+                   'first_name': forms.TextInput(attrs={'class': 'form-input'}),
+                   'last_name': forms.TextInput(attrs={'class': 'form-input'}),
+        } # добавляем виджет где прописываем стили полей, которые не переопределли
+    def clean_email(self):
+        """ Валидатор, проверяет почту в базе данных """
+        email = self.cleaned_data['email']
+        if get_user_model().objects.filter(email=email).exists():
+            raise forms.ValidationError('Почтовый адрес не уникален')
+        return email
+```
+- перепишем шаблон формы чтобы отображались стили register.html ->
+```html
+{% extends 'base.html' %}
+{% block content %}
+<div class='post'><div class='post-content'><form method='post'>
+        {% csrf_token %}
+        <input type='hidden' name='text' value='{{ next }}' />
+        <div class='form-error'>{{ form.non_field_errors }}</div>
+        {% for elem in form %}
+            <label class='form-label' for='{{ elem.id_for_label }}'>{{elem.label}}: </label>{{ elem }}</p>
+            <div class='form-error'>{{ felem.errors }}</div>
+        {% endfor %}
+        <button class='form-button' type='submit'>Регистрация</button></form></div></div>
+{% endblock content %}
+```
+- заменим функцию на класс ждя регистрации и переопределим маршрут views.py + urls.py ->
+
+```python
+from django.views.generic import CreateView
+class RegisterUser(CreateView):
+    form_class = RegisterUserForm
+    template_name = 'users/register.html'
+    extra_context = {'title': "Регистрация"}
+    success_url = reverse_lazy('users:login') # перенаправление при успешной решистрации
+
+urlpatterns.append(path('register/', views.RegisterUser.as_view(), name='register'))
+```
+
+
+<a name='gloss'><h3>Глоссарий</h3></a>
 ```python
 &                           # логическое И
 |                           # логическое ИЛИ
@@ -630,6 +687,10 @@ divisibleby                 # проверка целочисленной дел
 
 EmailField                  # поле для адреса электронной почты
 earliest()                  # выбор записи с самой ранней датой (наименьшей)
+elem                        # объект поля
+elem.errors                 # список ошибок заполнения поля формы
+elem.id_for_label           # идентификатор для тега label текущего поля
+elem.label                  # наименование поля в HTML-форме
 error_messages              # определяет набор сообщений об ошибках при заполнении разных полей
 exclude                     # список исключаемых полей при редактировании записи в админ-панели
 exclude()                   # выбор всех записей, кроме тех, что удовлетворяют критерию
@@ -651,6 +712,7 @@ forloop.first               # флаг первой итерации цикла 
 forloop.last                # флаг последней итерации цикла (True - для последней; False - для всех остальных) 
 forloop.revcounter          # обратный счет числа итераций, доходя до единицы
 forloop.revcounter0         # обратный счет числа итераций, доходя до нуля
+form.non_field_errors       # список ошибок, общих при некорректном заполнении формы
 form_class                  # ссылка на класс формы
 
 get                         # метод, срабатывающий при поступлении GET-запроса
@@ -787,3 +849,7 @@ verbose_name_plural         # атрибут для названия модел�
 views.py                    # для хранения представлений текущего приложения 
 widget                      # отвечает за настройку внешнего вида поля формы
 ```
+
+
+
+
