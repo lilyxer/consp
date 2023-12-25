@@ -324,7 +324,7 @@ from django.shortcuts import render, HttpResponse
     def logout_page(request): logout(request) return HttpResponse("<h3>Вы успешно вышли из системы</h3>")
 ```
 
-<a name='auth_reg'><h3>Авторизация и регистрация</h3></a>
+##### <a name='auth_reg'><h3>Авторизация и регистрация</h3></a>
 
 - [Введение в авторизацию пользователей](#auth_reg1)
 
@@ -339,6 +339,10 @@ from django.shortcuts import render, HttpResponse
 - [Регистрация пользователей через функции представления](#auth_reg6)
 
 - [Класс UserCreationForm](#auth_reg7)
+
+- [Авторизация через email. Профиль пользователя](#auth_reg8)
+
+- [Классы PasswordChangeView и PasswordChangeDoneView](#auth_reg9)
 
 <a name='auth_reg1'><h4>Введение в авторизацию пользователей</h4></a>
 
@@ -596,7 +600,6 @@ class RegisterUserForm(UserCreationForm):
 {% endblock content %}
 ```
 - заменим функцию на класс ждя регистрации и переопределим маршрут views.py + urls.py ->
-
 ```python
 from django.views.generic import CreateView
 class RegisterUser(CreateView):
@@ -608,8 +611,120 @@ class RegisterUser(CreateView):
 urlpatterns.append(path('register/', views.RegisterUser.as_view(), name='register'))
 ```
 
+<a name='auth_reg8'><h4>Авторизация через email. Профиль пользователя</h4></a>
+- реализуем возможность аутентефикации [не только через логин](https://docs.djangoproject.com/en/4.2/topics/auth/customizing/) но и по почте
+- внесем данные для аутентификации в setings.py ->
 
-<a name='gloss'><h3>Глоссарий</h3></a>
+```python
+AUTHENTICATION_BACKENDS = ['django.contrib.auth.backends.ModelBackend', 'users.authentication.EmailAuthBackend',]
+```
+- создадим authentication.py для возможности аутонтефикации по почте->
+```python
+import contextlib
+from django.contrib.auth import get_user_model, backends
+class EmailAuthBackend(backends.BaseBackend):
+    def authenticate(self, request, username=None, password=None, **kwargs):
+        user_model = get_user_model()
+        with contextlib.suppress(user_model.DoesNotExist, user_model.MultipleObjectsReturned):
+            """полученме пользователя по почте и сверка пароля"""
+            user = user_model.objects.get(email=username)
+            if user.check_password(password):
+                return user
+        return None
+    
+    def get_user(self, user_id):
+        user_model = get_user_model()
+        try:
+            return user_model.objects.get(pk=user_id)
+        except user_model.DoesNotExist:
+            return None
+```
+- Для возможности просмтатривать и редактировать свой профиль на понадобятся:
+  - создадим форму forms.ProfileUserForm ->
+  ```python
+  class ProfileUserForm(forms.ModelForm):
+    username = forms.CharField(disabled=True, label='Логин', widget=forms.TextInput(attrs={'class': 'form-input'}))
+    email = forms.CharField(disabled=True, label='E-mail', widget=forms.TextInput(attrs={'class': 'form-input'}))
+     class Meta:
+        model = get_user_model()
+        fields = ['username', 'email', 'first_name', 'last_name']
+        labels = {'first_name': 'Имя', 'last_name': 'Фамилия'}
+        widgets = {'first_name': forms.TextInput(attrs={'class': 'form-input'}),
+                   'last_name': forms.TextInput(attrs={'class': 'form-input'}),}
+  ```
+  - создадим шаблон users/profile.html -> аналогична register/lohin!!! без next
+  - создадим маршрут urls.py ->
+  ```python
+  path('profile/', views.ProfileUser.as_view(), name='profile')
+  ```
+  - создадим обработчик ProfileUser ->
+  ```python
+  class ProfileUser(LoginRequiredMixin, generic.UpdateView):
+    model = get_user_model()
+    form_class = ProfileUserForm
+    template_name = 'users/profile.html'
+    extra_context = {'title': 'Профиль'}
+    def get_success_url(self):
+        return reverse_lazy('users:profile', args=[self.request.user.pk])
+    def get_object(self, queryset):
+        return self.request.user
+  ```
+  - скорректируем базовый шаблон, чтобы авторизовавшись наш логин вел на страницу профиля ->
+  ```html
+  <a class='menu-link' href='{% url 'users:profile' %}'>{{ user.username }}</a> | 
+  ```
+
+<a name='auth_reg9'><h4>Классы PasswordChangeView и PasswordChangeDoneView</h4></a>
+- для измения пароля авторизованного пользователя силами django достаточно воспользоваться 2 базовыми классами и на странице профиля добавить маршрут:
+- urls.py ->
+
+```python
+    path('change-password/', PasswordChangeView.as_view(), name='change-password'),
+    path('change-password-done/', PasswordChangeDoneView.as_view(), name='change-password-done')
+``` 
+- profile.html ->
+```python
+<p class='post post-content'><a href='{% url 'users:change-password' %}'>Сменить пароль</a></p>
+```
+- Для реализации собственных представлениий нам нужно:
+  - создать 2 шаблона change_password.html и change_password_done.html ->
+  ```html
+  <!--шаблон смены - тот же что и для профиля отличие только в кнопке -->
+{% extends 'base.html' %}
+{% block content %}
+    <div class='post-content'>
+        <p>Вы успешно изменили пароль.</p><br>
+        <p><a href="{% url 'users:profile' %}">Вернуться в профиль.</a></p>
+    </div>
+{% endblock %}
+  ```
+  - создаем форму для смены пароля forms.UserPasswordChangeForm ->
+  ```python
+  from django.contrib.auth.forms import PasswordChangeForm
+  class UserPasswordChangeForm(PasswordChangeForm):
+    old_password = forms.CharField(label="Старый пароль", widget=forms.PasswordInput(attrs={'class': 'form-input'}))
+    new_password1 = forms.CharField(label="Новый пароль", widget=forms.PasswordInput(attrs={'class': 'form-input'}))
+    new_password2 = forms.CharField(label="Подтверждение", widget=forms.PasswordInput(attrs={'class': 'form-input'}))
+  ```
+  - создаем класс обработчика views.UserPasswordChange -> 
+  ```python
+  from django.contrib.auth.views import PasswordChangeView
+  class UserPasswordChange(PasswordChangeView):
+    form_class = UserPasswordChangeForm
+    success_url = reverse_lazy("users:change_password_done")
+    template_name = "users/change_password.html"
+    extra_context = {'title': "Изменение пароля"}
+  ```
+  - urls.py ->
+  ```python
+  path('change_password/', UserPasswordChange.as_view(), name='change_password'), # за обработку теперь отвечает наш класс
+  path('change_password_done/', PasswordChangeDoneView.as_view
+         (template_name='users/change_password_done.html',
+          title='успешно'), name='change_password_done'),# done принимает новый шаблон, его можно передавать в ()
+  ```
+
+
+#### <a name='gloss'><h3>Глоссарий</h3></a>
 ```python
 &                           # логическое И
 |                           # логическое ИЛИ
@@ -656,6 +771,7 @@ allow_empty                 # флаг разрешения отображени
 annotate                    # формирование новых вычисляемых полей
 apps.py                     # для настройки (конфигурирования) текущего приложения
 authenticate()              # выполняет поиск пользователя (как правило, в БД) по паре username/password и возвращает объект пользователя, если он был найден
+AUTHENTICATION_BACKENDS     # список бэкендов авторизации
 
 BooleanField                # поле типа CheckBox
 block                       # для создания блока замещаемой информации в дочерних шаблонах
@@ -736,8 +852,6 @@ has_other_pages             # метод проверки существован
 has_previous                # метод проверки существования предыдущей страницы
 
 INSTALLED_APPS              # список зарегистрированных приложений
-INSTALLED_APPS              # список из подключенных приложений к текущему проекту 
-INSTALLED_APPS              # список из подключенных приложений к текущему проекту 
 ImageField                  # поле выбора файла изображения
 IntegerField                # поле для целочисленных значений
 if                          # для проверки условий 
@@ -834,6 +948,11 @@ template_name               # путь к файлу шаблона
 tests.py                    # модуль с тестирующими процедурами
 
 UpdateView                  # для изменения существующих записей в БД с использованием форм
+User.check_password()       # проверка корректности пароля пользователя (сравниваются хэши)
+User.is_authenticated()     # проверка, что пользователь аутентифицирован на данном сайте
+User.objects                # стандартный менеджер записей для работы с таблицей user 
+User.save()                 # сохранение (изменение) данных пользователя в БД
+User.set_password()         # установка нового пароля пользователя (вычисляется хэш)
 update                      # изменение одного или нескольких полей записей выборки
 update()                    # изменение значения поля для выбранных записей
 upper                       # перевод в верхний регистр (все буквы заглавные)
