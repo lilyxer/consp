@@ -182,3 +182,28 @@ def get_working_ips(cleans: str, working: str, url: str) -> None:
 response = requests.get(url=url, stream=True)
 for piece in response.iter_content(chunk_size=100000):
 ```
+
+## Содержимое ответа  response  .json() .text .content
+- Кодировка
+  - можем узнать кодировку либо установить её сомостоятельно response.encoding = 'utf-8'
+- json()
+  - метод декодирует ответ сервера в объекты python, следует использовать в связке с проверкой статуса
+  ```python
+      print('Запрос успешно выполнен' if r.status_code == 200 else f'Произошла ошибка: {r.status_code}')
+  # or
+  try:
+      r.raise_for_status()
+      print("Запрос успешно выполнен")
+  except requests.exceptions.HTTPError as err:
+      print(f"Произошла ошибка: {err}")
+  ```
+- text
+  - возвращает сырой текст без обработки
+- content
+  - возвращает сырые байты ответа, используется вместе с конт. менеджером with для созранения файла:
+  ```python
+  with open('image.jpeg', 'wb') as file:
+    file.write(response.content)
+  ```
+
+##
