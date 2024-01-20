@@ -206,4 +206,41 @@ for piece in response.iter_content(chunk_size=100000):
     file.write(response.content)
   ```
 
-##
+## Exceptions
+```
+  |-- requests.RequestException: базовое исключение
+  |-- requests.ConnectionError: ошибка соединения/разрыв
+  |-- requests.HTTPError: статус != 200
+  |-- requests.MissingSchema: недопустимый или отсутствующий URL
+  |-- requests.TooManyRedirects: слишком большое количество перенаправлений(зацикливание)
+  |-- requests.Timeout: общее исключение по таймату
+    |-- requests.ConnectTimeout: запрос не выполнен из-за большого времени ожидания сервера
+    |-- requests.ReadTimeout: сервер не отправил данные в отведенное время
+```
+
+## Sessions
+- практикуется когда много запросов к одном серверу. переиспользуем соедниение и сохраняем куки
+
+## HTTPAdapter - позволяет управлять конфигурацией соединения с сервером
+```python
+session = requests.Session()
+adapter = HTTPAdapter(           # Создание адаптера с пользовательской конфигурацией
+    pool_connections=10,         # Количество соединений в пуле
+    pool_maxsize=20,             # Максимальное количество соединений в пуле
+    max_retries=5,               # Стратегия повторных попыток
+    pool_block=True)              # Блокировать или нет, когда пул соединений полон
+session.mount('http://', adapter)
+session.mount('https://', adapter)
+```
+- pool_connections: Это количество соединений, которые можно установить перед тем как начать ждать освобождения одного из уже занятых соединений.
+- pool_maxsize: Это максимальное количество соединений, которое может быть установлено в пуле. 
+- max_retries: Количество попыток, которые HTTPAdapter сделает для отправки вашего запроса, если возникнут какие-то проблемы
+- pool_block: Если этот параметр установлен в True, то когда все соединения в пуле заняты, новые запросы будут ждать, пока не освободится место, вместо того чтобы тут же возвращать ошибку
+
+## [BeautifulSoup4](https://www.crummy.com/software/BeautifulSoup/bs4/doc/)
+parsers = {'html.parser', 'lxml', 'lxml-xml', 'html5lib'}
+```bash
+Html5Lib и lxml имеют внешнюю зависимость
+pip install lxml / $apt-get install python-html5lib
+pip install html5lib / $apt-get install python-lxml```
+

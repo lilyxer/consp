@@ -22,9 +22,9 @@ docker ps                   # показывает процессы - запущ
 docker ps -a                # -- // -- которые спят
 docker rm <name or id>      # удалит скаченный контейнер
 docker images               # покажет скаченные
-docker
-docker
-docker
+docker rmi <name or id>     # удалит скаченный image
+docker start <id>           # запуск уже скаченного контейнера / остановленного
+docker run -it <ubuntu> <bash> # запуск в интерактивном режиме оболочку баш в контейнере убунту
 docker
 docker
 docker
