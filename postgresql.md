@@ -18,6 +18,7 @@ sudo apt update && sudo apt install pgadmin4
 createdb -U postgres my_base    # -U ключ от кого |  my_base - БД
 sudo -u postgres psql -d mybase -h localhost # подключение к базе, можно без -d
 
+ALTER USER user_name WITH PASSWORD 'new_password';
 CREATE USER lilyxer WITH PASSWORD 'passlil';            # создаем юзера
 CREATE DATABASE my_base;                                # создание БД через psql
 GRANT ALL PRIVILEGES ON DATABASE "my_base" to lilyxer;  # пользователь может работать с базой
@@ -102,6 +103,10 @@ CREATE TABLE IF NOT EXISTS my_table (
         student_id INTEGER REFERENCES Students(id),
         CONSTRAINT pk PRIMARY KEY (course_id, student_id)
     );
-    -- 2 saample
-    CREATE TABLE IF NOT EXISTS
+    -- 2 sample
+    CREATE TABLE IF NOT EXISTS HomeworkSolution (
+	id SERIAL PRIMARY KEY,
+	task_id INTEGER NOT NULL REFERENCES HomeworkTask(id),
+	student_id INTEGER NOT NULL REFERENCES Student(id),
+	solution TEXT NOT NULL);
 ```
