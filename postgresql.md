@@ -1,4 +1,5 @@
 [ДОКА](https://www.postgresql.org/)
+[СПРАВОЧНИК](https://code.mu/ru/sql/manual/)
 
 ## установка
 ```bash
@@ -48,11 +49,21 @@ dropdb -U postgres my_base      # удаление БД
         drop constraint <constraint_name>;
         -- удалить атрибут
         drop column <col_name>;
-        -- удалить таблицу
-        drop table <name>;
+    -- удалить таблицу
+    drop table <name>;
 ```
+- DML -> SELECT, INSERT, UPDATE, DELETE   # управление данными
+```sql
+    INSERT INTO course(name, description)
+    VALUES('Python', 'Python с нуля');
+
+    UPDATE course
+       SET description = 'Java с нуля'
+     WHERE id = 999;
+
+    DELETE FROM course
+     WHERE id = 999;
 ```
-DML -> SELECT, INSERT, UPDATE, DELETE   # управление данными
 TCL -> COMMIT, ROCCLBACK, SAVEPOINT     # управление транзакциями
 DCL -> GRANT, REVOKE, DENY      # управление доступом к БД
 ```
@@ -110,3 +121,20 @@ CREATE TABLE IF NOT EXISTS my_table (
 	student_id INTEGER NOT NULL REFERENCES Student(id),
 	solution TEXT NOT NULL);
 ```
+
+## простая выборка
+```sql
+    SELECT <attr_name>
+      FROM <table>
+     WHERE <ограничение>
+     ORDER BY <сортируем по полю> ASC\DESC
+     LIMIT <первые н строк>
+```
+DISTINCT - уникальные значения <br>
+IN / NOT IN ('first', 'second') - наличие в <br>
+BETWEEN 0 AND 1 - промежуток <br>
+LIKE / ILIKE 'some' - regex % _ <br>
+AND/OR - И ИЛИ <br>
+date('YYMMDD') - преобразование строки в дату <br>
+CURDATE() / STR_TO_DATE(now(), '%Y-%m-%d') - текущая дата [пример работы с датами](http://lifeexample.ru/razrabotka-i-optimizacia-saita/sql-rabota-s-datami.html) <br>
+EXTRACT (year from <date>)
