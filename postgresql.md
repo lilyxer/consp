@@ -138,3 +138,27 @@ AND/OR - И ИЛИ <br>
 date('YYMMDD') - преобразование строки в дату <br>
 CURDATE() / STR_TO_DATE(now(), '%Y-%m-%d') - текущая дата [пример работы с датами](http://lifeexample.ru/razrabotka-i-optimizacia-saita/sql-rabota-s-datami.html) <br>
 EXTRACT (year from <date>)
+
+## аггрегирующие функции
+```
+MAX
+MIN
+COUNT
+AVG
+SUM
+```
+- GROUP BY - группирует выборку по заданым трибутам, атрибут так же обязан бытьв SELECT
+- HAVING - аналог WHERE, но в отличии от WHERE, HAVING фильтрует после груупировки, а WHERE ДО. так же они работают ДО SELECT!
+- AS - псевдоним для столбца или таблицы
+
+## объединение таблиц JOIN
+```
+[INNER] JOIN - объединение при совпадении
+LEFT [OUTER] JOIN - все значения из левой заполняются NULL при отсутствии данных из правой
+RIGHT [OUTER] JOIN - аналог LEFT наоборот
+FULL [OUTER] JOIN - left+ right
+CROSS JOIN - все со всеми
+
+FROM table_a
+JOIN table_b ON table_a.id = table_b.id
+```
